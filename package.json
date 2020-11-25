@@ -1,0 +1,18 @@
+{
+  "name": "greponyx",
+  "version": "0.1",
+  "description": "Bot Grepolis",
+  "main": "bot.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.prod.json",
+    "start": "nodemon"
+  },
+  "keywords": [],
+  "author": "Neïlérua",
+  "license": "ISC",
+  "private": true,
+  "devDependencies": {
+    "nodemon": "^2.0.6",
+    "typescript": "^4.1.2"
+  }
+}
