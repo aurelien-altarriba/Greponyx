@@ -5,7 +5,8 @@
   "main": "bot.js",
   "scripts": {
     "build": "tsc -p tsconfig.prod.json",
-    "start": "nodemon"
+    "start": "nodemon",
+    "prod": "./node_modules/.bin/terser ./dist/bot.js --output ./dist/greponyx.txt --ecma 5 --compress --mangle --toplevel"
   },
   "keywords": [],
   "author": "Neïlérua",
@@ -13,6 +14,7 @@
   "private": true,
   "devDependencies": {
     "nodemon": "^2.0.6",
+    "terser": "^5.5.0",
     "typescript": "^4.1.2"
   }
 }
