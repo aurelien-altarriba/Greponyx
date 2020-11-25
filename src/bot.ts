@@ -73,7 +73,6 @@ const change = {
       events.gratuit = setInterval(auto.gratuit, 1000);
       console.log("=== Event Gratuit DEMARRE");
     }
-    etat.gratuit = !etat.gratuit;
   }
 }
 
@@ -246,7 +245,7 @@ headGreponyx.addEventListener('mouseup', () => {
   etat.deplacable = false;
 });
 
-headGreponyx.addEventListener('mousemove', e => {
+fnGreponyx.addEventListener('mousemove', e => {
   if (etat.deplacable) {
     fnGreponyx.style.top = `${e.pageY - etat.position.y}px`;
     fnGreponyx.style.left = `${e.pageX - etat.position.x}px`;
@@ -254,7 +253,7 @@ headGreponyx.addEventListener('mousemove', e => {
 });
 
 // Checkbox "Gratuit"
-controleGratuit_input.addEventListener('change', e => {
+controleGratuit_input.addEventListener('change', () => {
   change.gratuit();
   etat.gratuit = controleGratuit_input.checked;
 });
