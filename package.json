@@ -1,7 +1,7 @@
 {
   "name": "greponyx",
-  "version": "0.1.0",
-  "description": "Bot Grepolis",
+  "version": "0.1.2",
+  "description": "Bot Grepolis d'automatisation (hack)",
   "main": "bot.js",
   "scripts": {
     "build": "tsc -p tsconfig.prod.json",

@@ -1,4 +1,27 @@
-// FONCTIONS
+// ==== CSS ====
+const _css = `.check {
+  width: 1.4rem;
+  height: 1.4rem;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+.check + label {
+  color: white;
+  cursor: pointer;
+  user-select: none;
+}`;
+
+const css = document.createElement('style');
+css.appendChild(document.createTextNode(_css));
+document.getElementsByTagName('head')[0].appendChild(css);
+
+// ==== INTERFACES ====
+interface Events {
+  gratuit: undefined | number;
+}
+
+// ==== FONCTIONS ====
 // Pour vérifier si une clé existe et la rendre accessible en TS
 function hasOwnProperty<X extends {}, Y extends PropertyKey>
   (obj: X, prop: Y): obj is X & Record<Y, any> {
@@ -23,18 +46,55 @@ function creer(type: string, args: object): HTMLElement {
   return el;
 }
 
-// VARIABLES
-const version: string = "0.1";
-
-let etat = {
-  deplacable: false,
-  position: {
-    x: 10,
-    y: 10
+// ==== AUTOMATISATION ====
+const auto = {
+  gratuit: () => {
+    const boutons: any = document.getElementsByClassName('btn_time_reduction');
+    let _click: boolean = false;
+    for (let bouton of boutons) {
+      if (bouton.innerText === "Gratuit" && !_click) {
+        bouton.click();
+        _click = true;
+      }
+    }
   }
 }
 
-// HTML
+// ==== CHANGEMENT D'ÉTAT ====
+const change = {
+  gratuit: () => {
+    // Si l'event est en cours on l'arrête
+    if (etat.gratuit) {
+      clearInterval(events.gratuit);
+      console.log("=== Event Gratuit TERMINE");
+    }
+    // Sinon on le démarre
+    else {
+      events.gratuit = setInterval(auto.gratuit, 1000);
+      console.log("=== Event Gratuit DEMARRE");
+    }
+    etat.gratuit = !etat.gratuit;
+  }
+}
+
+// ==== VARIABLES ====
+const version: string = "0.1.2";
+
+// État de la fenêtre et des events
+const etat = {
+  deplacable: false,
+  position: {
+    x: 0,
+    y: 0
+  },
+  gratuit: false
+}
+
+const events: Events = {
+  gratuit: undefined
+}
+
+// ==== HTML ====
 const btGreponyx: HTMLElement = creer('div', {
   id: "bt-setup",
   innerHTML: "🐱‍👤",
@@ -61,15 +121,16 @@ const btGreponyx: HTMLElement = creer('div', {
 const fnGreponyx: HTMLElement = creer('div', {
   id: "setup",
   style: {
-    width: "60vw",
-    height: "70vh",
+    width: "350px",
+    height: "100px",
     background: "linear-gradient(15deg, #111, #444)",
     borderRadius: "10px",
     border: "2px solid #222",
     position: "absolute",
-    top: "10px",
+    bottom: "10px",
     left: "10px",
-    zIndex: 2000
+    zIndex: 2000,
+    display: "none"
   }
 });
 
@@ -91,7 +152,7 @@ const headGreponyx: HTMLElement = creer('div', {
 const titleGreponyx: HTMLElement = creer('div', {
   innerHTML: `🐱‍👤 GrepoNyx - v.${version}`,
   style: {
-    width: "90%",
+    width: "100%",
     height: "2rem",
     display: "flex",
     justifyContent: "center",
@@ -106,7 +167,7 @@ const closeGreponyx: HTMLElement = creer('div', {
   id: "close-setup",
   innerHTML: "❌",
   style: {
-    width: "5%",
+    width: "2rem",
     height: "2rem",
     display: "flex",
     justifyContent: "center",
@@ -116,14 +177,39 @@ const closeGreponyx: HTMLElement = creer('div', {
   }
 });
 
+// Contrôles
+const controleGratuit: HTMLElement = creer('div', {
+  style: {
+    display: "flex",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    margin: "0.5rem 1rem"
+  }
+});
+
+const controleGratuit_input: HTMLInputElement = <HTMLInputElement> creer('input', {
+  id: "check-gratuit",
+  className: "check",
+  type: "checkbox",
+});
+
+const controleGratuit_label: HTMLElement = creer('label', {
+  htmlFor: "check-gratuit",
+  innerHTML: "Finir les ordres de moins de 5 minutes",
+});
+
 fnGreponyx.appendChild(headGreponyx);
 headGreponyx.appendChild(titleGreponyx);
 headGreponyx.appendChild(closeGreponyx);
 
+fnGreponyx.appendChild(controleGratuit);
+controleGratuit.appendChild(controleGratuit_input);
+controleGratuit.appendChild(controleGratuit_label);
+
 document.body.appendChild(btGreponyx);
 document.body.appendChild(fnGreponyx);
 
-// EVENTS
+// ==== EVENTS ====
 // Bouton setup
 btGreponyx.addEventListener('mouseenter', () => {
   btGreponyx.style.boxShadow = "0 0 4px black inset";
@@ -165,4 +251,10 @@ headGreponyx.addEventListener('mousemove', e => {
     fnGreponyx.style.top = `${e.pageY - etat.position.y}px`;
     fnGreponyx.style.left = `${e.pageX - etat.position.x}px`;
   }
+});
+
+// Checkbox "Gratuit"
+controleGratuit_input.addEventListener('change', e => {
+  change.gratuit();
+  etat.gratuit = controleGratuit_input.checked;
 });
