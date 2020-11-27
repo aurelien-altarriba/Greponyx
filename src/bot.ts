@@ -4,7 +4,7 @@ interface Events {
 }
 
 // ==== VARIABLES ====
-const version: string = "0.1.3";
+const version: string = "0.1.4";
 
 // État de la fenêtre et des events
 const etat = {
@@ -364,12 +364,12 @@ headGreponyx.addEventListener('mousedown', e => {
   fnDebugGreponyx.style.zIndex = "2000";
 });
 
-headGreponyx.addEventListener('mouseup', () => {
+document.addEventListener('mouseup', () => {
   headGreponyx.style.cursor = "grab";
   etat.setup.deplacable = false;
 });
 
-fnGreponyx.addEventListener('mousemove', e => {
+document.addEventListener('mousemove', e => {
   if (etat.setup.deplacable) {
     fnGreponyx.style.top = `${e.pageY - etat.setup.position.y}px`;
     fnGreponyx.style.left = `${e.pageX - etat.setup.position.x}px`;
@@ -387,12 +387,12 @@ headDebugGreponyx.addEventListener('mousedown', e => {
   fnGreponyx.style.zIndex = "2000";
 });
 
-headDebugGreponyx.addEventListener('mouseup', () => {
+document.addEventListener('mouseup', () => {
   headDebugGreponyx.style.cursor = "grab";
   etat.debug.deplacable = false;
 });
 
-fnDebugGreponyx.addEventListener('mousemove', e => {
+document.addEventListener('mousemove', e => {
   if (etat.debug.deplacable) {
     fnDebugGreponyx.style.top = `${e.pageY - etat.debug.position.y}px`;
     fnDebugGreponyx.style.left = `${e.pageX - etat.debug.position.x}px`;
