@@ -4,7 +4,7 @@ interface Events {
 }
 
 // ==== VARIABLES ====
-const version: string = "0.1.4";
+const version: string = "0.2.1";
 
 // État de la fenêtre et des events
 const etat = {
@@ -21,8 +21,41 @@ const etat = {
       x: 0,
       y: 0
     },
+    actif: false,
+    messages: 0,
+    limite: 200
   },
-  gratuit: false
+  windows: {
+    tempsVerif: 300,
+    academie: {
+      auto: false,
+      fini: {
+        gratuit: false
+      }
+    },
+    port: {
+      auto: false,
+      fini: {
+        gratuit: false
+      }
+    },
+    senat: {
+      auto: false,
+      fini: {
+        gratuit: false
+      }
+    },
+    caserne: {
+      auto: false,
+      fini: {
+        gratuit: false
+      }
+    }
+  },
+  gratuit: {
+    actif: false,
+    timer: 120000       // 2 minutes
+  }
 }
 
 const events: Events = {
@@ -54,12 +87,19 @@ const _css = `.check {
   align-items: center;
   font-size: 1.1rem;
   cursor: pointer;
-  margin-right: 0.2rem;
+  padding-right: 0.2rem;
 }
 
 .version {
   font-size: 0.6rem;
   margin: 0.5rem 0 0 0.4rem;
+}
+
+.temps {
+  display: block;
+  font-size: 0.7rem;
+  color: #aaa;
+  margin-top: -0.3rem;
 }`;
 
 const css = document.createElement('style');
@@ -91,20 +131,249 @@ function creer(type: string, args: object): HTMLElement {
   return el;
 }
 
-// Mode debug
-// A FAIRE
+// Log en mode debug
+function log(txt: string) {
+  if (etat.debug.actif) {
+    const _now: any = document.getElementsByClassName('server_time_area')[0];
+    const time = _now.innerText.split(' ')[0];
+    contentDebugGreponyx.innerHTML = `[${time}] ${txt}<br/>${contentDebugGreponyx.innerHTML}`;
+
+    if (++etat.debug.messages >= etat.debug.limite) {
+      cleanLog();
+    }
+  }
+}
+
+// Nettoyage du debug
+function cleanLog() {
+  const dernierMessage = contentDebugGreponyx.innerHTML.lastIndexOf('[');
+  contentDebugGreponyx.innerHTML = contentDebugGreponyx.innerHTML.slice(0, dernierMessage);
+  etat.debug.messages--;
+}
+
+// Vérifie les boutons gratuits sur la page et clic
+function verifGratuit(fn?: string) {
+  log("Vérification des ordres 'GRATUIT'...");
+  const boutons: any = document.getElementsByClassName('btn_time_reduction');
+  let _click: boolean = false;
+  for (let bouton of boutons) {
+    if (bouton.innerText === "Gratuit" && !_click) {
+      bouton.click();
+      _click = true;
+      log("Bouton 'GRATUIT' détecté. Clic effectué!");
+    }
+  }
+  if (!_click) {
+    log("Aucun bouton 'GRATUIT' n'a été trouvé");
+  }
+  if (fn != undefined) {
+    //@ts-ignore
+    etat.windows[fn].fini.gratuit = true;
+  }
+}
+
+// Si la fenêtre est ouverte
+function estOuvert(nom: string): boolean {
+  if (nom == 'academie') {
+    return document.querySelector('.classic_window.academy') == null ? false : true;
+  }
+  else if (nom == 'port') {
+    return document.querySelector('.docks.window_background') == null ? false : true;
+  }
+  else if (nom == 'senat') {
+    return document.querySelector('.main_window_background') == null ? false : true;
+  }
+  else if (nom == 'caserne') {
+    return document.querySelector('.barracks.window_background') == null ? false : true;
+  }
+  else {
+    throw new Error("Nom inconnu en paramètre de la fonction 'estOuvert'");
+  }
+}
+
+// Ouvrir une fenêtre
+function ouvrir(fn: string) {
+
+  // Académie
+  if (fn == 'academie') {
+    log("Fenêtre de l'académie ouverte.");
+    //@ts-ignore
+    AcademyWindowFactory.openAcademyWindow();
+    etat.windows.academie.auto = true;
+  }
+
+  // Port
+  else if (fn == 'port') {
+    etat.windows.port.auto = false;
+
+    const addId = (el: any) => {
+      el.parentElement.parentElement.parentElement.id = "_port";
+      etat.windows.port.auto = true;
+      log("Fenêtre du port ouverte.");
+    }
+    //@ts-ignore
+    DocksWindowFactory.openDocksWindow();
+    let _wait = setInterval(function() {
+      const res = document.querySelector('.docks.window_background');
+      if (res != null) {
+        clearInterval(_wait);
+        addId(res);
+      }
+    }, etat.windows.tempsVerif);
+  }
+
+  // Sénat
+  else if (fn == 'senat') {
+    etat.windows.senat.auto = false;
+
+    const addId = (el: any) => {
+      el.parentElement.parentElement.parentElement.id = "_senat";
+      etat.windows.senat.auto = true;
+      log("Fenêtre du port ouverte.");
+    }
+    //@ts-ignore
+    MainWindowFactory.openMainWindow();
+    let _wait = setInterval(function() {
+      const res = document.querySelector('.main_window_background');
+      if (res != null) {
+        clearInterval(_wait);
+        addId(res);
+      }
+    }, etat.windows.tempsVerif);
+  }
+
+  // Caserne
+  else if (fn == 'caserne') {
+    etat.windows.caserne.auto = false;
+
+    const addId = (el: any) => {
+      el.parentElement.parentElement.parentElement.id = "_caserne";
+      etat.windows.caserne.auto = true;
+      log("Fenêtre de la caserne ouverte.");
+    }
+    //@ts-ignore
+    BarracksWindowFactory.openBarracksWindow();
+    let _wait = setInterval(function() {
+      const res = document.querySelector('.barracks.window_background');
+      if (res != null) {
+        clearInterval(_wait);
+        addId(res);
+      }
+    }, etat.windows.tempsVerif);
+  }
+}
+
+// Fermer une fenêtre
+function fermer(fn: string) {
+  if (fn == 'academie') {
+    //@ts-ignore
+    document.querySelector(".academy .close").click();
+    etat.windows.academie.auto = false;
+    log("La fenêtre de l'académie a été fermée");
+  }
+  else if (fn == 'port') {
+    //@ts-ignore
+    document.querySelector('#_port .ui-dialog-titlebar-close').click();
+    etat.windows.port.auto = false;
+    log("La fenêtre du port a été fermée");
+  }
+  else if (fn == 'senat') {
+    //@ts-ignore
+    document.querySelector('#_senat .ui-dialog-titlebar-close').click();
+    etat.windows.senat.auto = false;
+    log("La fenêtre du sénat a été fermée");
+  }
+  else if (fn == 'caserne') {
+    //@ts-ignore
+    document.querySelector('#_caserne .ui-dialog-titlebar-close').click();
+    etat.windows.caserne.auto = false;
+    log("La fenêtre de la caserne a été fermée");
+  }
+}
+
+function rechercherGratuit(fn: string) {
+  if (!estOuvert(fn)) {
+    ouvrir(fn);
+  } else {
+    //@ts-ignore
+    etat.windows[fn].auto = true;
+  }
+
+  // Attente fenêtre ouverte puis recherche
+  let _search = setInterval(function() {
+    //@ts-ignore
+    if (etat.windows[fn].auto || etat.windows[fn].manuel) {
+      clearInterval(_search);
+      verifGratuit(fn);
+    }
+  }, 200);
+
+  // Attente recherche finie puis fermeture
+  let _close = setInterval(function() {
+    //@ts-ignore
+    if (etat.windows[fn].fini.gratuit) {
+      clearInterval(_close);
+      //@ts-ignore
+      if (etat.windows[fn].auto) { fermer(fn); }
+    }
+  }, 200);
+
+  // À la fin il reste fini.gratuit à TRUE et .auto à FALSE
+}
 
 // ==== AUTOMATISATION ====
 const auto = {
   gratuit: () => {
-    const boutons: any = document.getElementsByClassName('btn_time_reduction');
-    let _click: boolean = false;
-    for (let bouton of boutons) {
-      if (bouton.innerText === "Gratuit" && !_click) {
-        bouton.click();
-        _click = true;
+
+    // Académie
+    log("# Lancement recherche académie");
+    rechercherGratuit('academie');
+
+    // Port
+    let _waitPort = setInterval(function() {
+      if (etat.windows.academie.fini.gratuit && !etat.windows.academie.auto) {
+        clearInterval(_waitPort);
+        etat.windows.academie.fini.gratuit = false;
+        etat.windows.academie.auto = false;
+
+        log("# Lancement recherche port");
+        rechercherGratuit('port');
       }
-    }
+    }, 200);
+
+    // Sénat
+    let _waitSenat = setInterval(function() {
+      if (etat.windows.port.fini.gratuit && !etat.windows.port.auto) {
+        clearInterval(_waitSenat);
+        etat.windows.port.fini.gratuit = false;
+        etat.windows.port.auto = false;
+
+        log("# Lancement recherche sénat");
+        rechercherGratuit('senat');
+      }
+    }, 200);
+
+    // Caserne
+    let _waitCaserne = setInterval(function() {
+      if (etat.windows.senat.fini.gratuit && !etat.windows.senat.auto) {
+        clearInterval(_waitCaserne);
+        etat.windows.senat.fini.gratuit = false;
+        etat.windows.senat.auto = false;
+
+        log("# Lancement recherche caserne");
+        rechercherGratuit('caserne');
+      }
+    }, 200);
+
+    // Fin
+    let _waitFin = setInterval(function() {
+      if (etat.windows.caserne.fini.gratuit && !etat.windows.caserne.auto) {
+        clearInterval(_waitFin);
+        etat.windows.caserne.fini.gratuit = false;
+        etat.windows.caserne.auto = false;
+        log("= Fin de la recherche des ordres 'GRATUIT' =");
+      }
+    }, 200);
   }
 }
 
@@ -112,21 +381,21 @@ const auto = {
 const change = {
   gratuit: () => {
     // Si l'event est en cours on l'arrête
-    if (etat.gratuit) {
+    if (etat.gratuit.actif) {
+      log("→ FIN de la détection des ordres gratuits");
       clearInterval(events.gratuit);
-      console.log("=== Event Gratuit TERMINE");
     }
     // Sinon on le démarre
     else {
-      events.gratuit = setInterval(auto.gratuit, 1000);
-      console.log("=== Event Gratuit DEMARRE");
+      log("→ DÉBUT de la détection des ordres gratuits");
+      auto.gratuit();
+      events.gratuit = setInterval(auto.gratuit, etat.gratuit.timer);
     }
   }
 }
 
 // ==== HTML ====
 const btGreponyx: HTMLElement = creer('div', {
-  id: "bt-setup",
   innerHTML: "🐱‍👤",
   style: {
     width: "35px",
@@ -149,7 +418,6 @@ const btGreponyx: HTMLElement = creer('div', {
 });
 
 const fnDebugGreponyx: HTMLElement = creer('div', {
-  id: "debug",
   style: {
     width: "600px",
     height: "400px",
@@ -166,7 +434,6 @@ const fnDebugGreponyx: HTMLElement = creer('div', {
 });
 
 const headDebugGreponyx: HTMLElement = creer('div', {
-  id: "head-debug",
   style: {
     width: "100%",
     height: "2rem",
@@ -195,13 +462,11 @@ const titleDebugGreponyx: HTMLElement = creer('div', {
 });
 
 const closeDebugGreponyx: HTMLElement = creer('div', {
-  id: "close-debug",
   className: "icone",
   innerHTML: "❌",
 });
 
 const fnGreponyx: HTMLElement = creer('div', {
-  id: "setup",
   style: {
     width: "450px",
     height: "200px",
@@ -217,7 +482,6 @@ const fnGreponyx: HTMLElement = creer('div', {
 });
 
 const headGreponyx: HTMLElement = creer('div', {
-  id: "head-setup",
   style: {
     width: "100%",
     height: "2rem",
@@ -246,13 +510,11 @@ const titleGreponyx: HTMLElement = creer('div', {
 });
 
 const infoGreponyx: HTMLElement = creer('div', {
-  id: "info-setup",
   className: "icone",
   innerHTML: "❔",
 });
 
 const debugGreponyx: HTMLElement = creer('div', {
-  id: "debug-setup",
   className: "icone",
   innerHTML: "🧰",
   style: {
@@ -261,10 +523,20 @@ const debugGreponyx: HTMLElement = creer('div', {
 });
 
 const closeGreponyx: HTMLElement = creer('div', {
-  id: "close-setup",
   className: "icone",
   innerHTML: "❌"
 });
+
+const contentDebugGreponyx: HTMLElement = creer('div', {
+  style: {
+    padding: "0.5rem 1rem",
+    color: "white",
+    textAlign: "left",
+    height: "350px",
+    overflowY: "auto",
+    overflowX: "hidden"
+  }
+})
 
 // Contrôles
 const controle: HTMLElement = creer('div', {
@@ -290,7 +562,7 @@ const controleGratuit_input: HTMLInputElement = <HTMLInputElement> creer('input'
 
 const controleGratuit_label: HTMLElement = creer('label', {
   htmlFor: "check-gratuit",
-  innerHTML: "Finir les ordres gratuits de moins de 5 minutes",
+  innerHTML: `<span class="temps">⏲ Toutes les 2 minutes</span>Finir les ordres gratuits de moins de 5 minutes`,
 });
 
 // ==== AJOUT HTML ====
@@ -307,6 +579,7 @@ fnGreponyx.appendChild(controle);
 fnDebugGreponyx.appendChild(headDebugGreponyx);
 headDebugGreponyx.appendChild(titleDebugGreponyx);
 headDebugGreponyx.appendChild(closeDebugGreponyx);
+fnDebugGreponyx.appendChild(contentDebugGreponyx);
 
 // Event "Gratuit"
 controle.appendChild(controleGratuit);
@@ -345,12 +618,19 @@ closeGreponyx.addEventListener('click', () => {
 debugGreponyx.addEventListener('click', () => {
   fnDebugGreponyx.style.display = "block";
   debugGreponyx.style.display = "none";
+  etat.debug.actif = true;
 });
 
 // Bouton close Debug
 closeDebugGreponyx.addEventListener('click', () => {
   fnDebugGreponyx.style.display = "none";
   debugGreponyx.style.display = "flex";
+  etat.debug.actif = false;
+});
+
+// Bouton Aide
+infoGreponyx.addEventListener('click', () => {
+  alert("L'aide sera bientôt disponible!");
 });
 
 // Barre header setup déplacement
@@ -413,5 +693,5 @@ fnDebugGreponyx.addEventListener('click', () => {
 // Checkbox "Gratuit"
 controleGratuit_input.addEventListener('change', () => {
   change.gratuit();
-  etat.gratuit = controleGratuit_input.checked;
+  etat.gratuit.actif = controleGratuit_input.checked;
 });

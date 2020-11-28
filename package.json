@@ -1,12 +1,12 @@
 {
   "name": "greponyx",
-  "version": "0.1.4",
+  "version": "0.2.1",
   "description": "Bot Grepolis d'automatisation (hack)",
   "main": "bot.js",
   "scripts": {
     "build": "tsc -p tsconfig.prod.json",
     "start": "nodemon",
-    "prod": "./node_modules/.bin/terser ./dist/bot.js --output ./dist/greponyx.txt --ecma 5 --compress --mangle --toplevel"
+    "prod": "./node_modules/.bin/terser ./dist/bot.js --output ./dist/greponyx.txt --ecma 5 --compress --mangle"
   },
   "keywords": [],
   "author": "Neïlérua",
