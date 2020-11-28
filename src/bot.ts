@@ -4,7 +4,7 @@ interface Events {
 }
 
 // ==== VARIABLES ====
-const version: string = "0.2.1";
+const version: string = "0.2.2";
 
 // État de la fenêtre et des events
 const etat = {
@@ -196,7 +196,7 @@ function ouvrir(fn: string) {
 
   // Académie
   if (fn == 'academie') {
-    log("Fenêtre de l'académie ouverte.");
+    log("🔆 Fenêtre de l'académie ouverte.");
     //@ts-ignore
     AcademyWindowFactory.openAcademyWindow();
     etat.windows.academie.auto = true;
@@ -209,7 +209,7 @@ function ouvrir(fn: string) {
     const addId = (el: any) => {
       el.parentElement.parentElement.parentElement.id = "_port";
       etat.windows.port.auto = true;
-      log("Fenêtre du port ouverte.");
+      log("🔆 Fenêtre du port ouverte ou chargée.");
     }
     //@ts-ignore
     DocksWindowFactory.openDocksWindow();
@@ -229,7 +229,7 @@ function ouvrir(fn: string) {
     const addId = (el: any) => {
       el.parentElement.parentElement.parentElement.id = "_senat";
       etat.windows.senat.auto = true;
-      log("Fenêtre du port ouverte.");
+      log("🔆 Fenêtre du sénat ouverte ou chargée.");
     }
     //@ts-ignore
     MainWindowFactory.openMainWindow();
@@ -249,7 +249,7 @@ function ouvrir(fn: string) {
     const addId = (el: any) => {
       el.parentElement.parentElement.parentElement.id = "_caserne";
       etat.windows.caserne.auto = true;
-      log("Fenêtre de la caserne ouverte.");
+      log("🔆 Fenêtre de la caserne ouverte ou chargée.");
     }
     //@ts-ignore
     BarracksWindowFactory.openBarracksWindow();
@@ -261,6 +261,11 @@ function ouvrir(fn: string) {
       }
     }, etat.windows.tempsVerif);
   }
+
+  // Si aucun
+  else {
+    throw new Error("Nom inconnu en paramètre de la fonction 'ouvert'");
+  }
 }
 
 // Fermer une fenêtre
@@ -269,29 +274,29 @@ function fermer(fn: string) {
     //@ts-ignore
     document.querySelector(".academy .close").click();
     etat.windows.academie.auto = false;
-    log("La fenêtre de l'académie a été fermée");
+    log("🔻 La fenêtre de l'académie a été fermée");
   }
   else if (fn == 'port') {
     //@ts-ignore
     document.querySelector('#_port .ui-dialog-titlebar-close').click();
     etat.windows.port.auto = false;
-    log("La fenêtre du port a été fermée");
+    log("🔻 La fenêtre du port a été fermée");
   }
   else if (fn == 'senat') {
     //@ts-ignore
     document.querySelector('#_senat .ui-dialog-titlebar-close').click();
     etat.windows.senat.auto = false;
-    log("La fenêtre du sénat a été fermée");
+    log("🔻 La fenêtre du sénat a été fermée");
   }
   else if (fn == 'caserne') {
     //@ts-ignore
     document.querySelector('#_caserne .ui-dialog-titlebar-close').click();
     etat.windows.caserne.auto = false;
-    log("La fenêtre de la caserne a été fermée");
+    log("🔻 La fenêtre de la caserne a été fermée");
   }
 }
 
-function rechercherGratuit(fn: string) {
+function rechercherGratuit(fn: string, fermerFn: boolean = false) {
   if (!estOuvert(fn)) {
     ouvrir(fn);
   } else {
@@ -306,7 +311,7 @@ function rechercherGratuit(fn: string) {
       clearInterval(_search);
       verifGratuit(fn);
     }
-  }, 200);
+  }, 100);
 
   // Attente recherche finie puis fermeture
   let _close = setInterval(function() {
@@ -314,9 +319,14 @@ function rechercherGratuit(fn: string) {
     if (etat.windows[fn].fini.gratuit) {
       clearInterval(_close);
       //@ts-ignore
-      if (etat.windows[fn].auto) { fermer(fn); }
+      if (fermerFn) {
+        fermer(fn);
+      } else {
+        //@ts-ignore
+        etat.windows[fn].auto = false;
+      }
     }
-  }, 200);
+  }, 100);
 
   // À la fin il reste fini.gratuit à TRUE et .auto à FALSE
 }
@@ -324,10 +334,11 @@ function rechercherGratuit(fn: string) {
 // ==== AUTOMATISATION ====
 const auto = {
   gratuit: () => {
+    log("## Début de la recherche des ordres 'GRATUIT'");
 
     // Académie
     log("# Lancement recherche académie");
-    rechercherGratuit('academie');
+    rechercherGratuit('academie', true);
 
     // Port
     let _waitPort = setInterval(function() {
@@ -339,7 +350,7 @@ const auto = {
         log("# Lancement recherche port");
         rechercherGratuit('port');
       }
-    }, 200);
+    }, 100);
 
     // Sénat
     let _waitSenat = setInterval(function() {
@@ -351,7 +362,7 @@ const auto = {
         log("# Lancement recherche sénat");
         rechercherGratuit('senat');
       }
-    }, 200);
+    }, 100);
 
     // Caserne
     let _waitCaserne = setInterval(function() {
@@ -361,9 +372,9 @@ const auto = {
         etat.windows.senat.auto = false;
 
         log("# Lancement recherche caserne");
-        rechercherGratuit('caserne');
+        rechercherGratuit('caserne', true);
       }
-    }, 200);
+    }, 100);
 
     // Fin
     let _waitFin = setInterval(function() {
@@ -371,9 +382,9 @@ const auto = {
         clearInterval(_waitFin);
         etat.windows.caserne.fini.gratuit = false;
         etat.windows.caserne.auto = false;
-        log("= Fin de la recherche des ordres 'GRATUIT' =");
+        log("## Fin de la recherche des ordres 'GRATUIT'");
       }
-    }, 200);
+    }, 100);
   }
 }
 
@@ -562,7 +573,7 @@ const controleGratuit_input: HTMLInputElement = <HTMLInputElement> creer('input'
 
 const controleGratuit_label: HTMLElement = creer('label', {
   htmlFor: "check-gratuit",
-  innerHTML: `<span class="temps">⏲ Toutes les 2 minutes</span>Finir les ordres gratuits de moins de 5 minutes`,
+  innerHTML: `<span class="temps">⏲ 2 min</span>Finir les ordres gratuits de moins de 5 minutes`,
 });
 
 // ==== AJOUT HTML ====
