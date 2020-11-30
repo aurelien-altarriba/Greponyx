@@ -1,10 +1,11 @@
 // ==== INTERFACES ====
 interface Events {
   gratuit: undefined | number;
+  villages: undefined | number;
 }
 
 // ==== VARIABLES ====
-const version: string = "0.2.2";
+const version: string = "0.3.0";
 
 // État de la fenêtre et des events
 const etat = {
@@ -54,12 +55,19 @@ const etat = {
   },
   gratuit: {
     actif: false,
-    timer: 120000       // 2 minutes
+    timer: 120000       // = 2 min
+  },
+  villages: {
+    actif: false,
+    timer: 301000,      // = 5 min et 1s
+    enCours: false,
+    liste: [] as Array<number>
   }
 }
 
 const events: Events = {
-  gratuit: undefined
+  gratuit: undefined,
+  villages: undefined
 }
 
 // ==== CSS ====
@@ -99,7 +107,7 @@ const _css = `.check {
   display: block;
   font-size: 0.7rem;
   color: #aaa;
-  margin-top: -0.3rem;
+  margin-top: -0.6rem;
 }`;
 
 const css = document.createElement('style');
@@ -151,6 +159,7 @@ function cleanLog() {
   etat.debug.messages--;
 }
 
+// Fonctions GRATUIT
 // Vérifie les boutons gratuits sur la page et clic
 function verifGratuit(fn?: string) {
   log("Vérification des ordres 'GRATUIT'...");
@@ -296,6 +305,7 @@ function fermer(fn: string) {
   }
 }
 
+// Effectue la recherche entière
 function rechercherGratuit(fn: string, fermerFn: boolean = false) {
   if (!estOuvert(fn)) {
     ouvrir(fn);
@@ -329,6 +339,38 @@ function rechercherGratuit(fn: string, fermerFn: boolean = false) {
   }, 100);
 
   // À la fin il reste fini.gratuit à TRUE et .auto à FALSE
+}
+
+// Fonctions VILLAGES
+// Récupère les ressources d'un village
+function farmVillage(id: number) {
+  log("Récolte du village...");
+  let ouvert = false;
+
+  //@ts-ignore
+  window.FarmTownWindowFactory.openWindow(id);
+
+  // On attends l'ouverture
+  let _waitOpen = setInterval(function() {
+    const res = document.querySelector('.window_curtain .farm_town');
+    if (res != null) {
+      clearInterval(_waitOpen);
+      ouvert = true;
+      log("🔆 Fenêtre du village ouverte ou chargée");
+    }
+  }, etat.windows.tempsVerif);
+
+  let _waitRecup = setInterval(function() {
+    if (ouvert) {
+      clearInterval(_waitRecup);
+      //@ts-ignore
+      document.querySelector('.window_curtain .farm_town .action_wrapper').children[0].children[3].click();
+      log("Clic pour récupérer les ressources effectué!");
+      etat.villages.liste.shift();
+      etat.villages.enCours = false;
+      log(`Villages restants: ${etat.villages.liste.length}`);
+    }
+  }, etat.windows.tempsVerif);
 }
 
 // ==== AUTOMATISATION ====
@@ -385,6 +427,34 @@ const auto = {
         log("## Fin de la recherche des ordres 'GRATUIT'");
       }
     }, 100);
+  },
+  villages: () => {
+    log("## Début de la récolte des villages");
+
+    // On récupère les villages sur l'île
+    const _villages: any = document.getElementsByClassName('owned farm_town');
+
+    // On créé un tableau d'ID des villages
+    for (const village of _villages) {
+      etat.villages.liste.push(+village.dataset.id);
+    }
+
+    // On lance l'automatisation village par village
+    let _waitVillages = setInterval(function() {
+      // S'il n'y a plus aucun village et que les traitements sont terminés
+      if (etat.villages.liste.length < 1 && !etat.villages.enCours) {
+        clearInterval(_waitVillages);
+        //@ts-ignore
+        document.querySelector('.window_curtain .btn_wnd.close').click();
+        log("🔻 La fenêtre du village a été fermée");
+        log("## Fin de la récolte des villages");
+      }
+      // Sinon on traite le village
+      else if (!etat.villages.enCours) {
+        etat.villages.enCours = true;
+        farmVillage(etat.villages.liste[0]);
+      }
+    }, etat.windows.tempsVerif);
   }
 }
 
@@ -401,6 +471,17 @@ const change = {
       log("→ DÉBUT de la détection des ordres gratuits");
       auto.gratuit();
       events.gratuit = setInterval(auto.gratuit, etat.gratuit.timer);
+    }
+  },
+  villages: () => {
+    if (etat.villages.actif) {
+      log("→ FIN de la récupération de ressources des villages");
+      clearInterval(events.villages);
+    }
+    else {
+      log("→ DÉBUT de la récupération de ressources des villages");
+      auto.villages();
+      events.villages = setInterval(auto.villages, etat.villages.timer);
     }
   }
 }
@@ -556,12 +637,13 @@ const controle: HTMLElement = creer('div', {
   }
 });
 
+// Gratuit
 const controleGratuit: HTMLElement = creer('div', {
   style: {
     display: "flex",
     justifyContent: "flex-start",
     alignItems: "center",
-    margin: "0.5rem 1rem"
+    margin: "1.5rem 1rem"
   }
 });
 
@@ -573,7 +655,28 @@ const controleGratuit_input: HTMLInputElement = <HTMLInputElement> creer('input'
 
 const controleGratuit_label: HTMLElement = creer('label', {
   htmlFor: "check-gratuit",
-  innerHTML: `<span class="temps">⏲ 2 min</span>Finir les ordres gratuits de moins de 5 minutes`,
+  innerHTML: `<span class="temps">⏲ Toutes les 2 min</span>Finir les ordres gratuits de moins de 5 minutes (recherche, construction et recrutement)`,
+});
+
+// Villages
+const controleVillages: HTMLElement = creer('div', {
+  style: {
+    display: "flex",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    margin: "1.5rem 1rem"
+  }
+});
+
+const controleVillages_input: HTMLInputElement = <HTMLInputElement> creer('input', {
+  id: "check-villages",
+  className: "check",
+  type: "checkbox",
+});
+
+const controleVillages_label: HTMLElement = creer('label', {
+  htmlFor: "check-villages",
+  innerHTML: `<span class="temps">⏲ Toutes les 5 min et 1s</span>Récupérer les ressources des villages de paysans toutes les 5 minutes`,
 });
 
 // ==== AJOUT HTML ====
@@ -596,6 +699,11 @@ fnDebugGreponyx.appendChild(contentDebugGreponyx);
 controle.appendChild(controleGratuit);
 controleGratuit.appendChild(controleGratuit_input);
 controleGratuit.appendChild(controleGratuit_label);
+
+// Event "Villages"
+controle.appendChild(controleVillages);
+controleVillages.appendChild(controleVillages_input);
+controleVillages.appendChild(controleVillages_label);
 
 // Ajout sur Grepolis
 document.body.appendChild(btGreponyx);
@@ -705,4 +813,10 @@ fnDebugGreponyx.addEventListener('click', () => {
 controleGratuit_input.addEventListener('change', () => {
   change.gratuit();
   etat.gratuit.actif = controleGratuit_input.checked;
+});
+
+// Checkbox "Villages"
+controleVillages_input.addEventListener('change', () => {
+  change.villages();
+  etat.villages.actif = controleVillages_input.checked;
 });
