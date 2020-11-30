@@ -317,7 +317,7 @@ function rechercherGratuit(fn: string, fermerFn: boolean = false) {
   // Attente fenêtre ouverte puis recherche
   let _search = setInterval(function() {
     //@ts-ignore
-    if (etat.windows[fn].auto || etat.windows[fn].manuel) {
+    if (etat.windows[fn].auto) {
       clearInterval(_search);
       verifGratuit(fn);
     }
