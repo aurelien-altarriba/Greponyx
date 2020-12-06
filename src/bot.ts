@@ -5,7 +5,7 @@ interface Events {
 }
 
 // ==== VARIABLES ====
-const version: string = "0.3.0";
+const version: string = "0.3.1";
 
 // État de la fenêtre et des events
 const etat = {
@@ -59,7 +59,7 @@ const etat = {
   },
   villages: {
     actif: false,
-    timer: 301000,      // = 5 min et 1s
+    timer: 305000,      // = 5 min et 5s
     enCours: false,
     liste: [] as Array<number>
   }
@@ -676,7 +676,7 @@ const controleVillages_input: HTMLInputElement = <HTMLInputElement> creer('input
 
 const controleVillages_label: HTMLElement = creer('label', {
   htmlFor: "check-villages",
-  innerHTML: `<span class="temps">⏲ Toutes les 5 min et 1s</span>Récupérer les ressources des villages de paysans toutes les 5 minutes`,
+  innerHTML: `<span class="temps">⏲ Toutes les 5 min et 5s</span>Récupérer les ressources des villages de paysans toutes les 5 minutes`,
 });
 
 // ==== AJOUT HTML ====
