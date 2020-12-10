@@ -8,7 +8,7 @@ interface Events {
 type FN = "academie" | "senat";
 
 // ==== VARIABLES ====
-const version: string = "0.3.2";
+const version: string = "0.3.3";
 
 // Liste des villes et leurs villages
 const vlv = new Map();
