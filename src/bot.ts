@@ -10,6 +10,10 @@ type FN = "academie" | "senat";
 // ==== VARIABLES ====
 const version: string = "0.3.2";
 
+// Liste des villes et leurs villages
+const villages: object = {}
+let _enRecolte: Array<number> = [];
+
 // État de la fenêtre et des events
 const etat = {
   setup: {
@@ -55,8 +59,7 @@ const etat = {
   villages: {
     actif: false,
     timer: 303000,      // = 5 min et 3s
-    enCours: false,
-    liste: [] as Array<number>
+    enCours: false
   }
 }
 
@@ -351,9 +354,10 @@ function rechercherGratuit(fn: FN) {
 
 // Fonctions VILLAGES
 // Récupère les ressources d'un village
-function farmVillage(id: number) {
+function farmVillage(id: number, premiereVerif: boolean, idVille: number) {
   log("Récolte du village...");
   let ouvert = false;
+  let cpt = 0;
 
   //@ts-ignore
   window.FarmTownWindowFactory.openWindow(id);
@@ -361,10 +365,29 @@ function farmVillage(id: number) {
   // On attends l'ouverture
   let _waitOpen = setInterval(function() {
     const res = document.querySelector('.window_curtain .farm_town .window_content .action_wrapper');
+    cpt++;
     if (res != null) {
       clearInterval(_waitOpen);
       ouvert = true;
       log(`<span class="debut">🔆 Fenêtre du village ouverte ou chargée.</span>`);
+    }
+
+    // Si 10 tentatives sans succés
+    else if (cpt >= 10 && !premiereVerif) {
+      clearInterval(_waitOpen);
+      clearInterval(_waitRecup);
+      _enRecolte.shift();
+      etat.villages.enCours = false;
+      log(`<span class="erreur">⚠ Impossible de détecter la fenêtre du village!</span>`);
+    }
+
+    // Si première vérification manquée
+    else if (cpt >= 20 && premiereVerif) {
+      clearInterval(_waitOpen);
+      clearInterval(_waitRecup);
+      const pos = _enRecolte.indexOf(id);
+      _enRecolte.splice(pos, 1);
+      log(`<span class="erreur">Village introuvable pour la ville, supression du village pour cette ville.</span>`);
     }
   }, etat.windows.tempsVerif);
 
@@ -374,9 +397,9 @@ function farmVillage(id: number) {
       //@ts-ignore
       document.querySelector('.window_curtain .farm_town .action_wrapper').children[0].children[3].click();
       log("Clic pour récupérer les ressources effectué!");
-      etat.villages.liste.shift();
+      _enRecolte.shift();
       etat.villages.enCours = false;
-      log(`Villages restants: ${etat.villages.liste.length}`);
+      log(`Villages restants: ${_enRecolte.length}`);
     }
   }, etat.windows.tempsVerif);
 }
@@ -417,16 +440,33 @@ const auto = {
 
     // On récupère les villages sur l'île
     const _villages: any = document.getElementsByClassName('owned farm_town');
+    //@ts-ignore
+    const idVille = Game.townId;
+    let premiereVerif: boolean = false;
 
-    // On créé un tableau d'ID des villages
-    for (const village of _villages) {
-      etat.villages.liste.push(+village.dataset.id);
+    // Si le tableau des villages de la ville n'a pas été créé
+    //@ts-ignore
+    if (villages[idVille] == undefined) {
+      log(`<span class="debut">⭐ Création de la liste des villages pour la ville</span>`);
+      //@ts-ignore
+      villages[idVille] = [] as Array<number>;
+      premiereVerif = true;
+
+      // On rempli le tableau avec les id
+      for (const village of _villages) {
+        //@ts-ignore
+        villages[idVille].push(+village.dataset.id);
+      }
     }
+
+    //@ts-ignore
+    _enRecolte = villages[idVille];
+    console.log(_enRecolte);
 
     // On lance l'automatisation village par village
     let _waitVillages = setInterval(function() {
       // S'il n'y a plus aucun village et que les traitements sont terminés
-      if (etat.villages.liste.length < 1 && !etat.villages.enCours) {
+      if (_enRecolte.length < 1 && !etat.villages.enCours) {
         clearInterval(_waitVillages);
         //@ts-ignore
         document.querySelector('.window_curtain .farm_town .btn_wnd.close').click();
@@ -436,7 +476,7 @@ const auto = {
       // Sinon on traite le village
       else if (!etat.villages.enCours) {
         etat.villages.enCours = true;
-        farmVillage(etat.villages.liste[0]);
+        farmVillage(_enRecolte[0], premiereVerif, idVille);
       }
     }, etat.windows.tempsVerif);
   }
