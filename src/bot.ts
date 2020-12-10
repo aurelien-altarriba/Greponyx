@@ -661,7 +661,7 @@ const controleVillages_input: HTMLInputElement = <HTMLInputElement> creer('input
 
 const controleVillages_label: HTMLElement = creer('label', {
   htmlFor: "check-villages",
-  innerHTML: `<span class="temps">⏲ Toutes les 5 min et 5s</span>Récupérer les ressources des villages de paysans toutes les 5 minutes`,
+  innerHTML: `<span class="temps">⏲ Toutes les 5 min et 3s</span>Récupérer les ressources des villages de paysans toutes les 5 minutes`,
 });
 
 // ==== AJOUT HTML ====
