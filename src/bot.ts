@@ -8,7 +8,7 @@ interface Events {
 type FN = "academie" | "senat";
 
 // ==== VARIABLES ====
-const version: string = "0.3.1";
+const version: string = "0.3.2";
 
 // État de la fenêtre et des events
 const etat = {

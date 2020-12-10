@@ -1,6 +1,6 @@
 {
   "name": "greponyx",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Bot Grepolis d'automatisation (hack)",
   "main": "bot.js",
   "scripts": {
