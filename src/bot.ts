@@ -4,6 +4,9 @@ interface Events {
   villages: undefined | number;
 }
 
+// ==== TYPES ====
+type FN = "academie" | "senat";
+
 // ==== VARIABLES ====
 const version: string = "0.3.1";
 
@@ -27,27 +30,19 @@ const etat = {
     limite: 200
   },
   windows: {
-    tempsVerif: 300,
+    tempsVerif: 100,
     academie: {
       auto: false,
-      fini: {
-        gratuit: false
-      }
-    },
-    port: {
-      auto: false,
+      erreur: false,
+      nbEvent: 0,
       fini: {
         gratuit: false
       }
     },
     senat: {
       auto: false,
-      fini: {
-        gratuit: false
-      }
-    },
-    caserne: {
-      auto: false,
+      erreur: false,
+      nbEvent: 0,
       fini: {
         gratuit: false
       }
@@ -59,7 +54,7 @@ const etat = {
   },
   villages: {
     actif: false,
-    timer: 305000,      // = 5 min et 5s
+    timer: 303000,      // = 5 min et 3s
     enCours: false,
     liste: [] as Array<number>
   }
@@ -108,6 +103,22 @@ const _css = `.check {
   font-size: 0.7rem;
   color: #aaa;
   margin-top: -0.6rem;
+}
+
+#log::first-line {
+  color: #ff8;
+}
+
+.debut {
+  color: #afa !important;
+}
+
+.fin {
+  color: #fb8 !important;
+}
+
+.erreur {
+  color: #f66 !important;
 }`;
 
 const css = document.createElement('style');
@@ -160,8 +171,16 @@ function cleanLog() {
 }
 
 // Fonctions GRATUIT
+// Réinitialise l'état d'une fenêtre après une erreur
+function resetFn(fn: FN) {
+  etat.windows[fn].erreur = false;
+  etat.windows[fn].auto = false;
+  etat.windows[fn].fini.gratuit = true;
+  etat.windows[fn].nbEvent = 0;
+}
+
 // Vérifie les boutons gratuits sur la page et clic
-function verifGratuit(fn?: string) {
+function verifGratuit(fn: FN) {
   log("Vérification des ordres 'GRATUIT'...");
   const boutons: any = document.getElementsByClassName('btn_time_reduction');
   let _click: boolean = false;
@@ -173,60 +192,52 @@ function verifGratuit(fn?: string) {
     }
   }
   if (!_click) {
-    log("Aucun bouton 'GRATUIT' n'a été trouvé");
+    log("Aucun bouton 'GRATUIT' n'a été trouvé.");
   }
-  if (fn != undefined) {
-    //@ts-ignore
-    etat.windows[fn].fini.gratuit = true;
-  }
+  etat.windows[fn].fini.gratuit = true;
 }
 
 // Si la fenêtre est ouverte
-function estOuvert(nom: string): boolean {
-  if (nom == 'academie') {
+function estOuvert(fn: FN): boolean {
+  if (fn == 'academie') {
     return document.querySelector('.classic_window.academy') == null ? false : true;
   }
-  else if (nom == 'port') {
-    return document.querySelector('.docks.window_background') == null ? false : true;
-  }
-  else if (nom == 'senat') {
+  else if (fn == 'senat') {
     return document.querySelector('.main_window_background') == null ? false : true;
   }
-  else if (nom == 'caserne') {
-    return document.querySelector('.barracks.window_background') == null ? false : true;
-  }
   else {
-    throw new Error("Nom inconnu en paramètre de la fonction 'estOuvert'");
+    throw new Error("Nom inconnu en paramètre de la fonction 'estOuvert'.");
   }
 }
 
 // Ouvrir une fenêtre
-function ouvrir(fn: string) {
+function ouvrir(fn: FN) {
+  let cpt = 0;
 
   // Académie
   if (fn == 'academie') {
-    log("🔆 Fenêtre de l'académie ouverte.");
+    etat.windows.academie.auto = false;
+
     //@ts-ignore
     AcademyWindowFactory.openAcademyWindow();
-    etat.windows.academie.auto = true;
-  }
 
-  // Port
-  else if (fn == 'port') {
-    etat.windows.port.auto = false;
-
-    const addId = (el: any) => {
-      el.parentElement.parentElement.parentElement.id = "_port";
-      etat.windows.port.auto = true;
-      log("🔆 Fenêtre du port ouverte ou chargée.");
-    }
-    //@ts-ignore
-    DocksWindowFactory.openDocksWindow();
+    // On regarde si la fenêtre s'ouvre
     let _wait = setInterval(function() {
-      const res = document.querySelector('.docks.window_background');
+      const res = document.querySelector('.window_curtain .academy');
+      cpt++;
+      
+      // Si la fenêtre s'ouvre
       if (res != null) {
         clearInterval(_wait);
-        addId(res);
+        etat.windows.academie.auto = true;
+        log(`<span class="debut">🔆 Fenêtre de l'académie ouverte et chargée.</span>`);
+      }
+      
+      // Si 10 tentatives sans succés
+      else if (cpt >= 10) {
+        clearInterval(_wait);
+        etat.windows.academie.erreur = true;
+        log(`<span class="erreur">⚠ Impossible de détecter la fenêtre de l'académie!</span>`);
       }
     }, etat.windows.tempsVerif);
   }
@@ -235,108 +246,105 @@ function ouvrir(fn: string) {
   else if (fn == 'senat') {
     etat.windows.senat.auto = false;
 
-    const addId = (el: any) => {
-      el.parentElement.parentElement.parentElement.id = "_senat";
-      etat.windows.senat.auto = true;
-      log("🔆 Fenêtre du sénat ouverte ou chargée.");
-    }
     //@ts-ignore
     MainWindowFactory.openMainWindow();
     let _wait = setInterval(function() {
       const res = document.querySelector('.main_window_background');
+      cpt++;
+
+      // Si la fenêtre s'ouvre
       if (res != null) {
         clearInterval(_wait);
-        addId(res);
+        // On ajoute un id pour retrouver le bouton Fermer de la fenêtre
+        //@ts-ignore
+        res.parentElement.parentElement.parentElement.id = "_senat";
+        etat.windows.senat.auto = true;
+        log(`<span class="debut">🔆 Fenêtre du sénat ouverte ou chargée.</span>`);
       }
-    }, etat.windows.tempsVerif);
-  }
 
-  // Caserne
-  else if (fn == 'caserne') {
-    etat.windows.caserne.auto = false;
-
-    const addId = (el: any) => {
-      el.parentElement.parentElement.parentElement.id = "_caserne";
-      etat.windows.caserne.auto = true;
-      log("🔆 Fenêtre de la caserne ouverte ou chargée.");
-    }
-    //@ts-ignore
-    BarracksWindowFactory.openBarracksWindow();
-    let _wait = setInterval(function() {
-      const res = document.querySelector('.barracks.window_background');
-      if (res != null) {
+      // Si 10 tentatives sans succés
+      else if (cpt >= 10) {
         clearInterval(_wait);
-        addId(res);
+        etat.windows.senat.erreur = true;
+        log(`<span class="erreur">⚠ Impossible de détecter la fenêtre du sénat!</span>`);
       }
     }, etat.windows.tempsVerif);
   }
 
   // Si aucun
   else {
-    throw new Error("Nom inconnu en paramètre de la fonction 'ouvert'");
+    throw new Error("Nom inconnu en paramètre de la fonction 'ouvert'.");
   }
 }
 
 // Fermer une fenêtre
-function fermer(fn: string) {
+function fermer(fn: FN) {
+
+  // Académie
   if (fn == 'academie') {
-    //@ts-ignore
-    document.querySelector(".academy .close").click();
+    const res: HTMLElement | null = document.querySelector(".academy .close");
+    if (res != null) {
+      res.click();
+      log(`<span class="fin">🔻 La fenêtre de l'académie a été fermée.</span>`);
+    }
     etat.windows.academie.auto = false;
-    log("🔻 La fenêtre de l'académie a été fermée");
   }
-  else if (fn == 'port') {
-    //@ts-ignore
-    document.querySelector('#_port .ui-dialog-titlebar-close').click();
-    etat.windows.port.auto = false;
-    log("🔻 La fenêtre du port a été fermée");
-  }
+
+  // Sénat
   else if (fn == 'senat') {
-    //@ts-ignore
-    document.querySelector('#_senat .ui-dialog-titlebar-close').click();
+    const res: HTMLElement| null = document.querySelector('#_senat .ui-dialog-titlebar-close');
+    if (res != null) {
+      res.click();
+      log(`<span class="fin">🔻 La fenêtre du sénat a été fermée.</span>`);
+    }
     etat.windows.senat.auto = false;
-    log("🔻 La fenêtre du sénat a été fermée");
   }
-  else if (fn == 'caserne') {
-    //@ts-ignore
-    document.querySelector('#_caserne .ui-dialog-titlebar-close').click();
-    etat.windows.caserne.auto = false;
-    log("🔻 La fenêtre de la caserne a été fermée");
+
+  // Si aucun
+  else {
+    throw new Error("Nom inconnu en paramètre de la fonction 'fermer'");
   }
 }
 
-// Effectue la recherche entière
-function rechercherGratuit(fn: string, fermerFn: boolean = false) {
+// Effectue la gestion de la fenêtre pour la recherche du gratuit
+function rechercherGratuit(fn: FN) {
   if (!estOuvert(fn)) {
     ouvrir(fn);
   } else {
-    //@ts-ignore
     etat.windows[fn].auto = true;
   }
 
   // Attente fenêtre ouverte puis recherche
   let _search = setInterval(function() {
-    //@ts-ignore
     if (etat.windows[fn].auto) {
       clearInterval(_search);
       verifGratuit(fn);
     }
-  }, 100);
+
+    // Si erreur sur la fenêtre
+    else if (etat.windows[fn].erreur) {
+      clearInterval(_search);
+      if (++etat.windows[fn].nbEvent >= 2) {
+        resetFn(fn);
+      }
+    }
+  }, etat.windows.tempsVerif);
 
   // Attente recherche finie puis fermeture
   let _close = setInterval(function() {
-    //@ts-ignore
     if (etat.windows[fn].fini.gratuit) {
       clearInterval(_close);
-      //@ts-ignore
-      if (fermerFn) {
-        fermer(fn);
-      } else {
-        //@ts-ignore
-        etat.windows[fn].auto = false;
+      fermer(fn);
+    }
+
+    // Si erreur sur la fenêtre
+    else if (etat.windows[fn].erreur) {
+      clearInterval(_close);
+      if (++etat.windows[fn].nbEvent >= 2) {
+        resetFn(fn);
       }
     }
-  }, 100);
+  }, etat.windows.tempsVerif);
 
   // À la fin il reste fini.gratuit à TRUE et .auto à FALSE
 }
@@ -352,11 +360,11 @@ function farmVillage(id: number) {
 
   // On attends l'ouverture
   let _waitOpen = setInterval(function() {
-    const res = document.querySelector('.window_curtain .farm_town');
+    const res = document.querySelector('.window_curtain .farm_town .window_content .action_wrapper');
     if (res != null) {
       clearInterval(_waitOpen);
       ouvert = true;
-      log("🔆 Fenêtre du village ouverte ou chargée");
+      log(`<span class="debut">🔆 Fenêtre du village ouverte ou chargée.</span>`);
     }
   }, etat.windows.tempsVerif);
 
@@ -380,53 +388,29 @@ const auto = {
 
     // Académie
     log("# Lancement recherche académie");
-    rechercherGratuit('academie', true);
-
-    // Port
-    let _waitPort = setInterval(function() {
-      if (etat.windows.academie.fini.gratuit && !etat.windows.academie.auto) {
-        clearInterval(_waitPort);
-        etat.windows.academie.fini.gratuit = false;
-        etat.windows.academie.auto = false;
-
-        log("# Lancement recherche port");
-        rechercherGratuit('port');
-      }
-    }, 100);
+    rechercherGratuit('academie');
 
     // Sénat
     let _waitSenat = setInterval(function() {
-      if (etat.windows.port.fini.gratuit && !etat.windows.port.auto) {
+      if (etat.windows.academie.fini.gratuit && !etat.windows.academie.auto) {
         clearInterval(_waitSenat);
-        etat.windows.port.fini.gratuit = false;
-        etat.windows.port.auto = false;
+        etat.windows.academie.fini.gratuit = false;
+        etat.windows.academie.auto = false;
 
         log("# Lancement recherche sénat");
         rechercherGratuit('senat');
       }
-    }, 100);
-
-    // Caserne
-    let _waitCaserne = setInterval(function() {
-      if (etat.windows.senat.fini.gratuit && !etat.windows.senat.auto) {
-        clearInterval(_waitCaserne);
-        etat.windows.senat.fini.gratuit = false;
-        etat.windows.senat.auto = false;
-
-        log("# Lancement recherche caserne");
-        rechercherGratuit('caserne', true);
-      }
-    }, 100);
+    }, etat.windows.tempsVerif);
 
     // Fin
     let _waitFin = setInterval(function() {
-      if (etat.windows.caserne.fini.gratuit && !etat.windows.caserne.auto) {
+      if (etat.windows.senat.fini.gratuit && !etat.windows.senat.auto) {
         clearInterval(_waitFin);
-        etat.windows.caserne.fini.gratuit = false;
-        etat.windows.caserne.auto = false;
+        etat.windows.senat.fini.gratuit = false;
+        etat.windows.senat.auto = false;
         log("## Fin de la recherche des ordres 'GRATUIT'");
       }
-    }, 100);
+    }, etat.windows.tempsVerif);
   },
   villages: () => {
     log("## Début de la récolte des villages");
@@ -445,8 +429,8 @@ const auto = {
       if (etat.villages.liste.length < 1 && !etat.villages.enCours) {
         clearInterval(_waitVillages);
         //@ts-ignore
-        document.querySelector('.window_curtain .btn_wnd.close').click();
-        log("🔻 La fenêtre du village a été fermée");
+        document.querySelector('.window_curtain .farm_town .btn_wnd.close').click();
+        log(`<span class="fin">🔻 La fenêtre du village a été fermée</span>`);
         log("## Fin de la récolte des villages");
       }
       // Sinon on traite le village
@@ -463,23 +447,23 @@ const change = {
   gratuit: () => {
     // Si l'event est en cours on l'arrête
     if (etat.gratuit.actif) {
-      log("→ FIN de la détection des ordres gratuits");
+      log("→ ARRÊT de la détection des ordres gratuits");
       clearInterval(events.gratuit);
     }
     // Sinon on le démarre
     else {
-      log("→ DÉBUT de la détection des ordres gratuits");
+      log("→ DÉMARRAGE de la détection des ordres gratuits");
       auto.gratuit();
       events.gratuit = setInterval(auto.gratuit, etat.gratuit.timer);
     }
   },
   villages: () => {
     if (etat.villages.actif) {
-      log("→ FIN de la récupération de ressources des villages");
+      log("→ ARRÊT de la récupération de ressources des villages");
       clearInterval(events.villages);
     }
     else {
-      log("→ DÉBUT de la récupération de ressources des villages");
+      log("→ DÉMARRAGE de la récupération de ressources des villages");
       auto.villages();
       events.villages = setInterval(auto.villages, etat.villages.timer);
     }
@@ -620,6 +604,7 @@ const closeGreponyx: HTMLElement = creer('div', {
 });
 
 const contentDebugGreponyx: HTMLElement = creer('div', {
+  id: "log",
   style: {
     padding: "0.5rem 1rem",
     color: "white",
@@ -655,7 +640,7 @@ const controleGratuit_input: HTMLInputElement = <HTMLInputElement> creer('input'
 
 const controleGratuit_label: HTMLElement = creer('label', {
   htmlFor: "check-gratuit",
-  innerHTML: `<span class="temps">⏲ Toutes les 2 min</span>Finir les ordres gratuits de moins de 5 minutes (recherche, construction et recrutement)`,
+  innerHTML: `<span class="temps">⏲ Toutes les 2 min</span>Finir les ordres gratuits de moins de 5 minutes (recherche et construction)`,
 });
 
 // Villages
