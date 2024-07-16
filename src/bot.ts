@@ -520,7 +520,7 @@ const change = {
 
 // ==== HTML ====
 const btGreponyx: HTMLElement = creer('div', {
-  innerHTML: "🐱‍👤",
+  innerHTML: "🥷",
   style: {
     width: "35px",
     height: "35px",
@@ -620,7 +620,7 @@ const headGreponyx: HTMLElement = creer('div', {
 });
 
 const titleGreponyx: HTMLElement = creer('div', {
-  innerHTML: `🐱‍👤 GrepoNyx <span class="version">v.${version}</span>`,
+  innerHTML: `🥷 GrepoNyx <span class="version">v.${version}</span>`,
   style: {
     width: "100%",
     height: "2rem",
